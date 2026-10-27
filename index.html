@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GhaziAbad Tanzeem</title>
+<meta name="theme-color" content="#1F4E3D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tanzeem">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #1F4E3D; overflow: hidden; }
+  #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #EEF2EE; }
+  #splash { position: fixed; inset: 0; display: grid; place-items: center; align-content: center; gap: 18px;
+            background: #1F4E3D; color: #fff; font: 600 20px/1.4 system-ui, sans-serif; text-align: center; transition: opacity .3s; }
+  #splash img { width: 96px; height: 96px; border-radius: 22px; }
+  #splash .hint { font-weight: 400; font-size: 14px; opacity: .8; max-width: 300px; }
+  #splash a { color: #F3D27A; }
+  .hide { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<!-- ============ PASTE YOUR GOOGLE WEBSITE LINK BELOW (the one ending in /exec) ============ -->
+<script>
+  const APP_URL = 'PASTE_YOUR_LINK_HERE';
+</script>
+<!-- ======================================================================================= -->
+
+<div id="splash"><img src="icon-192.png" alt=""><div>GhaziAbad Tanzeem</div><div class="hint" id="hint">Loading…</div></div>
+<iframe id="app" title="GhaziAbad Tanzeem" allow="clipboard-write; camera" referrerpolicy="no-referrer-when-downgrade"></iframe>
+<script>
+  const frame = document.getElementById('app'), splash = document.getElementById('splash'), hint = document.getElementById('hint');
+  if (!APP_URL || APP_URL.indexOf('/exec') < 0) {
+    hint.textContent = 'Setup needed: paste the website link into index.html (APP_URL).';
+  } else {
+    frame.src = APP_URL;
+    frame.addEventListener('load', () => setTimeout(() => splash.classList.add('hide'), 400));
+    setTimeout(() => { if (!splash.classList.contains('hide')) hint.innerHTML = 'Still loading… check your internet.<br><a href="' + APP_URL + '">Open in browser</a>'; }, 20000);
+  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
