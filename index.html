@@ -30,6 +30,14 @@
   #instGo { background: #1F4E3D; color: #fff; }
   #instX { background: transparent; color: #5B6B62; padding: 6px 8px !important; font-size: 18px !important; }
   #inst[hidden] { display: none; }
+  #shr { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.45); font: 15px/1.4 system-ui, sans-serif; }
+  #shr[hidden] { display: none; }
+  #shr .card { width: 100%; max-width: 520px; background: #fff; color: #14231C; border-radius: 20px 20px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 24px rgba(0,0,0,.2); }
+  #shr b { display: block; font-size: 18px; margin-bottom: 4px; }
+  #shr .sub { color: #5B6B62; font-size: 14px; }
+  #shr img { display: block; width: 100%; max-height: 38vh; object-fit: contain; object-position: top; border-radius: 12px; border: 1px solid #E2E8E4; margin: 12px 0; background: #F6F8F6; }
+  #shrGo { width: 100%; border: 0; border-radius: 14px; padding: 16px; background: #25A35A; color: #fff; font: 700 17px system-ui, sans-serif; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  #shrX { width: 100%; border: 0; background: transparent; color: #5B6B62; font: 600 15px system-ui, sans-serif; padding: 12px; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -42,6 +50,8 @@
 <div id="splash"><img src="icon-192.png" alt=""><div>GhaziAbad Tanzeem</div><div class="hint" id="hint">Loading…</div></div>
 <div id="inst" hidden><img src="icon-192.png" alt=""><div class="t"><b>Install Tanzeem app</b><span id="instTxt">Open it like WhatsApp, from your home screen.</span></div>
   <button type="button" id="instGo" hidden>Install</button><button type="button" id="instX" aria-label="Close">✕</button></div>
+<div id="shr" hidden><div class="card"><b>Picture ready</b><div class="sub" id="shrSub"></div><img id="shrImg" alt="">
+  <button type="button" id="shrGo">Share on WhatsApp</button><button type="button" id="shrX">Cancel</button></div></div>
 <iframe id="app" title="GhaziAbad Tanzeem" allow="clipboard-write; camera; web-share" referrerpolicy="no-referrer-when-downgrade"></iframe>
 <script>
   const frame = document.getElementById('app'), splash = document.getElementById('splash'), hint = document.getElementById('hint');
@@ -54,7 +64,7 @@
   }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-  /* Share pictures to WhatsApp for the app (the share menu only works from this top page). Version 2. */
+  /* Share pictures to WhatsApp for the app (the share menu only works from this top page). Version 3. */
   function dataUrlToFile(url, name) {
     const b64 = url.split(',')[1], bin = atob(b64), arr = new Uint8Array(bin.length);
     for (let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
@@ -71,10 +81,26 @@
     try { files = (d.files || []).map(f => dataUrlToFile(f.url, f.name)); } catch (err) { reply('tz-share-result', { ok: false, err: 'read: ' + err.message }); return; }
     if (!navigator.share) { reply('tz-share-result', { ok: false, err: 'share menu not available in this browser' }); return; }
     if (navigator.canShare && !navigator.canShare({ files })) { reply('tz-share-result', { ok: false, err: 'this phone cannot share pictures from the app' }); return; }
-    navigator.share({ files, text: d.text || '' })
+    const data = { files, text: d.text || '' };
+    const active = !navigator.userActivation || navigator.userActivation.isActive;
+    if (!active) { askTap(data, d.files, reply); return; }
+    navigator.share(data)
       .then(() => reply('tz-share-result', { ok: true }))
-      .catch(err => reply('tz-share-result', { ok: err && err.name === 'AbortError', err: err && (err.name + ': ' + err.message) }));
+      .catch(err => {
+        if (err && err.name === 'NotAllowedError') { askTap(data, d.files, reply); return; }
+        reply('tz-share-result', { ok: err && err.name === 'AbortError', err: err && (err.name + ': ' + err.message) });
+      });
   });
+  /* The phone allows the share menu only right after a tap, so ask for one tap here. */
+  const shr = document.getElementById('shr');
+  function askTap(data, raw, reply) {
+    document.getElementById('shrImg').src = raw[0].url;
+    document.getElementById('shrSub').textContent = raw.length > 1 ? raw.length + ' pictures' : '';
+    shr.hidden = false;
+    reply('tz-share-result', { ok: true });
+    document.getElementById('shrGo').onclick = () => { shr.hidden = true; navigator.share(data).catch(() => {}); };
+    document.getElementById('shrX').onclick = () => { shr.hidden = true; };
+  }
 
   /* Install banner: shown only in the browser, never inside the installed app */
   const inst = document.getElementById('inst'), go = document.getElementById('instGo'), txt = document.getElementById('instTxt');
