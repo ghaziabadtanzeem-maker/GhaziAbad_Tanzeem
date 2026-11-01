@@ -54,20 +54,26 @@
   }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-  /* Share pictures to WhatsApp for the app (the share menu only works from this top page). */
-  window.addEventListener('message', async e => {
+  /* Share pictures to WhatsApp for the app (the share menu only works from this top page). Version 2. */
+  function dataUrlToFile(url, name) {
+    const b64 = url.split(',')[1], bin = atob(b64), arr = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
+    return new File([arr], name, { type: 'image/png' });
+  }
+  window.addEventListener('message', e => {
     const d = e.data;
-    if (!d || d.type !== 'tz-share' || !/\.googleusercontent\.com$/.test(new URL(e.origin).hostname)) return;
-    const reply = ok => { try { e.source.postMessage({ type: 'tz-share-result', id: d.id, ok }, '*'); } catch (err) {} };
-    try {
-      const files = await Promise.all((d.files || []).map(async f => {
-        const blob = await (await fetch(f.url)).blob();
-        return new File([blob], f.name, { type: 'image/png' });
-      }));
-      if (!navigator.canShare || !navigator.canShare({ files })) { reply(false); return; }
-      await navigator.share({ files, text: d.text || '' });
-      reply(true);
-    } catch (err) { reply(err && err.name === 'AbortError'); }
+    if (!d || d.type !== 'tz-share') return;
+    let host = ''; try { host = new URL(e.origin).hostname; } catch (err) {}
+    if (!/\.googleusercontent\.com$/.test(host)) return;
+    const reply = (type, extra) => { try { e.source.postMessage(Object.assign({ type, id: d.id }, extra || {}), '*'); } catch (err) {} };
+    reply('tz-share-ack');
+    let files;
+    try { files = (d.files || []).map(f => dataUrlToFile(f.url, f.name)); } catch (err) { reply('tz-share-result', { ok: false, err: 'read: ' + err.message }); return; }
+    if (!navigator.share) { reply('tz-share-result', { ok: false, err: 'share menu not available in this browser' }); return; }
+    if (navigator.canShare && !navigator.canShare({ files })) { reply('tz-share-result', { ok: false, err: 'this phone cannot share pictures from the app' }); return; }
+    navigator.share({ files, text: d.text || '' })
+      .then(() => reply('tz-share-result', { ok: true }))
+      .catch(err => reply('tz-share-result', { ok: err && err.name === 'AbortError', err: err && (err.name + ': ' + err.message) }));
   });
 
   /* Install banner: shown only in the browser, never inside the installed app */
