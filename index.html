@@ -41,9 +41,12 @@
 </style>
 </head>
 <body>
+<!-- ============ PASTE YOUR GOOGLE WEBSITE LINK BELOW (the one ending in /exec) ============ -->
 <script>
   const APP_URL = 'https://script.google.com/macros/s/AKfycbwyIiGBHUcdU9WxGVJYatcu9KPFd5zlOVf8wpPXDwewefQ2Q46ZWWw09alqr8yc6IOraA/exec';
 </script>
+<!-- ======================================================================================= -->
+
 <div id="splash"><img src="icon-192.png" alt=""><div>GhaziAbad Zalmian</div><div class="hint" id="hint">Loading…</div></div>
 <div id="inst" hidden><img src="icon-192.png" alt=""><div class="t"><b>Install Zalmian app</b><span id="instTxt">Open it like WhatsApp, from your home screen.</span></div>
   <button type="button" id="instGo" hidden>Install</button><button type="button" id="instX" aria-label="Close">✕</button></div>
@@ -61,7 +64,7 @@
   }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-  /* Share pictures to WhatsApp (Version 3) */
+  /* Share pictures to WhatsApp for the app (the share menu only works from this top page). Version 3. */
   function dataUrlToFile(url, name) {
     const b64 = url.split(',')[1], bin = atob(b64), arr = new Uint8Array(bin.length);
     for (let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
@@ -88,6 +91,7 @@
         reply('tz-share-result', { ok: err && err.name === 'AbortError', err: err && (err.name + ': ' + err.message) });
       });
   });
+  /* The phone allows the share menu only right after a tap, so ask for one tap here. */
   const shr = document.getElementById('shr');
   function askTap(data, raw, reply) {
     document.getElementById('shrImg').src = raw[0].url;
@@ -98,13 +102,13 @@
     document.getElementById('shrX').onclick = () => { shr.hidden = true; };
   }
 
-  /* Install banner */
+  /* Install banner: shown only in the browser, never inside the installed app */
   const inst = document.getElementById('inst'), go = document.getElementById('instGo'), txt = document.getElementById('instTxt');
   const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   let dismissed = false; try { dismissed = localStorage.getItem('tz_inst_x') === '1'; } catch (e) {}
   let promptEvt = null;
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptEvt = e; if (!installed && !dismissed) { go.hidden = false; inst.hidden = false; } });
-  go.onclick = async () => { if (!promptEvt) return; promptEvt.prompt(); await promptEvt.userChoice; promptEvt = null; inst.hidden = true; };
+  go.onclick = async () => { if (!promptEvt) return; promptEvt.prompt(); const r = await promptEvt.userChoice; promptEvt = null; inst.hidden = true; };
   document.getElementById('instX').onclick = () => { inst.hidden = true; try { localStorage.setItem('tz_inst_x', '1'); } catch (e) {} };
   window.addEventListener('appinstalled', () => { inst.hidden = true; });
   if (!installed && !dismissed) setTimeout(() => {
